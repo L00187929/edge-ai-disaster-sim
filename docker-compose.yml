@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  nlp:
+    build: ./nlp
+    ports: ["5001:5001"]
+    cpus: 2
+    mem_limit: 1g
+
+  cv:
+    build: ./cv
+    ports: ["5002:5002"]
+    cpus: 2
+    mem_limit: 1g
+
+  api:
+    build: ./api
+    ports: ["5000:5000"]
+    environment:
+      - NLP_URL=http://nlp:5001/predict
+      - CV_URL=http://cv:5002/predict
+      - DB_PATH=/data/events.db
+    depends_on:
+      - nlp
+      - cv
+    volumes:
+      - dbdata:/data
+    cpus: 1
+    mem_limit: 512m
+
+volumes:
+  dbdata:

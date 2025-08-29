@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Edge-AI Disaster Response</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:2rem;max-width:1100px}
+    h1{margin-top:0}
+    .card{border:1px solid #e5e7eb;border-radius:14px;padding:1rem;margin-bottom:1rem;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+    label{display:block;margin:.5rem 0 .25rem}
+    input[type=text]{width:100%;padding:.6rem;border:1px solid #d1d5db;border-radius:10px}
+    input[type=file]{margin:.25rem 0 .5rem}
+    button{padding:.6rem 1rem;border-radius:10px;border:1px solid #111; background:#111; color:#fff;cursor:pointer}
+    table{width:100%;border-collapse:collapse;margin-top:1rem}
+    th,td{border:1px solid #e5e7eb;padding:.5rem;text-align:left;font-size:.95rem}
+    th{background:#f9fafb}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    @media(max-width:900px){.row{grid-template-columns:1fr}}
+    .badge{display:inline-block;padding:.2rem .5rem;border-radius:10px;background:#eef2ff;margin-left:.5rem}
+    .pill{padding:.2rem .6rem;border-radius:999px;background:#f1f5f9}
+  </style>
+</head>
+<body>
+  <h1>Edge‑AI Disaster Response <span class="badge">Simulated</span></h1>
+  <div class="card">
+    <h3>Analyse an incident</h3>
+    <form id="incidentForm">
+      <label>Text (tweet / report)</label>
+      <input type="text" id="text" placeholder="e.g., 'Flooding near the old bridge, people trapped on roofs'">
+      <label>Image (drone/frame)</label>
+      <input type="file" id="image">
+      <button type="submit">Analyse</button>
+    </form>
+    <pre id="result" style="white-space:pre-wrap;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:1rem;margin-top:1rem"></pre>
+  </div>
+
+  <div class="card">
+    <h3>Recent events (auto-refresh)</h3>
+    <table>
+      <thead><tr><th>Time</th><th>NLP</th><th>CV</th><th>Priority</th><th>Impact</th></tr></thead>
+      <tbody id="events"></tbody>
+    </table>
+  </div>
+
+<script>
+async function fetchEvents(){
+  const res = await fetch('/events');
+  const data = await res.json();
+  const tbody = document.getElementById('events');
+  tbody.innerHTML = data.events.map(e => `
+    <tr>
+      <td>${new Date(e.ts*1000).toLocaleString()}</td>
+      <td>${e.nlp_label} (${e.nlp_conf.toFixed(2)})</td>
+      <td>${e.cv_label} (${e.cv_conf.toFixed(2)})</td>
+      <td><span class="pill">${e.priority}</span></td>
+      <td>${e.impact}</td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('incidentForm').addEventListener('submit', async (ev)=>{
+  ev.preventDefault();
+  const text = document.getElementById('text').value;
+  const img = document.getElementById('image').files[0];
+  const form = new FormData();
+  if(text) form.append('text', text);
+  if(img) form.append('image', img);
+  const res = await fetch('/analyse', { method:'POST', body: form });
+  const data = await res.json();
+  document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+  fetchEvents();
+});
+
+fetchEvents();
+setInterval(fetchEvents, 5000);
+</script>
+</body>
+</html>
